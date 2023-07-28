@@ -3,12 +3,16 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
-	"net/http"
+	"net/url"
 	"os"
 	"strings"
+
+	"crypto/sha256"
+
+	"github.com/gofiber/fiber/v2"
+	"github.com/mholt/archiver/v3"
 )
 
 type File struct {
@@ -20,20 +24,18 @@ type File struct {
 	IsDir bool
 }
 
-func GetFiles(w http.ResponseWriter, r *http.Request) {
+func GetFiles(path string) ([]File, error) {
 	// get the list of files in the directory
 	// print the url requested
-	newPath := fmt.Sprintf("./files/%s", strings.Join(strings.Split(r.URL.Path, "/")[3:], "/"))
-	if newPath == "./files/" {
-		newPath = "./files"
+	if path == "./files/" {
+		path = "./files"
 	}
-	files, err := os.ReadDir(newPath)
+	files, err := os.ReadDir(fmt.Sprintf("./files/%s", path))
 	data := []File{}
 	if err != nil {
 		// Warn and send 404 if the directory is not found
-		log.Printf("Directory not found: %s\n", newPath)
-		w.WriteHeader(http.StatusNotFound)
-		return
+		log.Printf("Directory not found: %s\n", path)
+		return data, err
 	}
 	for _, file := range files {
 		// get the file info
@@ -49,31 +51,202 @@ func GetFiles(w http.ResponseWriter, r *http.Request) {
 			Size:  fileInfo.Size(),
 			Date:  fileInfo.ModTime().String(),
 			Type:  fileType,
-			Url:   fmt.Sprintf("%s/%s", newPath, file.Name()),
+			Url:   fmt.Sprintf("%s/%s", path, file.Name()),
 			IsDir: fileInfo.IsDir(),
 		}
 		// append the file to the data
 		data = append(data, newFile)
 	}
-
-	// format in json and send
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-
-	json.NewEncoder(w).Encode(data)
+	return data, nil
 }
 
 func main() {
-	fileServer := http.FileServer(http.Dir("../file/dist"))
-	http.Handle("/", fileServer)
-
-	// handle files download requests from the client
-	http.Handle("/files/", http.StripPrefix("/files/", http.FileServer(http.Dir("./files"))))
-
-	http.HandleFunc("/api/get_files/", GetFiles)
-
-	fmt.Printf("Starting server at port 8080\nhttp://localhost:8080\n")
-	if err := http.ListenAndServe(":8080", nil); err != nil {
+	//load password from PASSWORD file
+	password, err := os.ReadFile("PASSWORD")
+	if err != nil {
 		log.Fatal(err)
 	}
+	h := sha256.New()
+	h.Write([]byte(password))
+	// Convert the sha256 hash to a string
+	secret := fmt.Sprintf("%x", h.Sum(nil))
+	fmt.Println("Secret:", secret)
+
+	app := fiber.New(fiber.Config{
+		BodyLimit: 100 * 1024 * 1024 * 1024, // 100 GB
+	})
+
+	// serve the ui
+	app.Static("/", "../file/dist")
+
+	// Start the routing
+	app.Get("/api/get_files/*", func(c *fiber.Ctx) error {
+		files, err := GetFiles(c.Params("*"))
+		if err != nil {
+			return c.Status(404).SendString("Directory not found")
+		}
+		return c.JSON(files)
+	})
+
+	app.Get("/api/file_info/*", func(c *fiber.Ctx) error {
+		// URL decode the path
+		file, _ := url.QueryUnescape(c.Params("*"))
+		// get the file info
+		fileInfo, err := os.Stat(fmt.Sprintf("./files/%s", file))
+		if err != nil {
+			return c.Status(404).SendString("File not found")
+		}
+		// create a new file object
+		fileTypeArr := strings.Split(fileInfo.Name(), ".")
+		fileType := fileTypeArr[len(fileTypeArr)-1]
+		newFile := File{
+			Name:  fileInfo.Name(),
+			Size:  fileInfo.Size(),
+			Date:  fileInfo.ModTime().String(),
+			Type:  fileType,
+			Url:   file,
+			IsDir: fileInfo.IsDir(),
+		}
+		return c.JSON(newFile)
+	})
+
+	app.Get("/download/*", func(c *fiber.Ctx) error {
+		return c.SendFile("../file/dist/index.html")
+	})
+
+	app.Get("/api/download/*", func(c *fiber.Ctx) error {
+		// URL decode the path
+		file, _ := url.QueryUnescape(c.Params("*"))
+		// if the file is a directory, compress it and send it
+		if isDir(fmt.Sprintf("./files/%s", file)) {
+			// get the directory name
+			dirName := strings.Split(file, "/")
+			dirName = dirName[:len(dirName)-1]
+			dirName = append(dirName, "compressed")
+			// compress the directory
+			err := CompressDir(fmt.Sprintf("./files/%s", file), fmt.Sprintf("./tmp/%s.zip", strings.Join(dirName, "/")))
+			if err != nil {
+				return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+					"error": "Failed to compress the folder",
+				})
+			}
+			// send the file
+			return c.SendFile(fmt.Sprintf("./tmp/%s.zip", strings.Join(dirName, "/")))
+		}
+		path := fmt.Sprintf("./files/%s", file)
+		return c.Download(path)
+	})
+
+	app.Post("/api/delete/*", func(c *fiber.Ctx) error {
+		if c.FormValue("secret") != secret {
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+				"error": "Unauthorized",
+			})
+		}
+		fmt.Println("[DELETE] " + c.Params("*"))
+		// URL decode the path
+		file, _ := url.QueryUnescape(c.Params("*"))
+		// delete the file
+		err := os.RemoveAll(fmt.Sprintf("./files/%s", file))
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"error": "Failed to delete the file",
+			})
+		}
+		return c.JSON(fiber.Map{
+			"message": "File deleted successfully",
+		})
+	})
+
+	app.Get("/api/create_dir/*", func(c *fiber.Ctx) error {
+		if c.FormValue("secret") != secret {
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+				"error": "Unauthorized",
+			})
+		}
+		// URL decode the path
+		file, _ := url.QueryUnescape(c.Params("*"))
+		// create the directory
+		err := os.MkdirAll(fmt.Sprintf("./files/%s", file), 0755)
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"error": "Failed to create the directory",
+			})
+		}
+		return c.JSON(fiber.Map{
+			"message": "Directory created successfully",
+		})
+	})
+
+	app.Post("/api/upload/*", func(c *fiber.Ctx) error {
+		fmt.Println("[UPLOAD] " + c.Params("*"))
+		// Check is the secret is correct
+		if c.FormValue("secret") != secret {
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+				"error": "Unauthorized",
+			})
+		}
+		// URL decode the path
+		file_path, _ := url.QueryUnescape(c.Params("*"))
+		// get the files from the request
+		form, err := c.MultipartForm()
+		if err != nil {
+			fmt.Println(err)
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"error": "Failed to get the files",
+			})
+		}
+		// get the files
+		files := form.File["files"]
+		// loop through the files
+		for _, file := range files {
+			// save the file
+			fmt.Println("[Upload] Received: ", file.Filename)
+			err := c.SaveFile(file, fmt.Sprintf("./files/%s/%s", file_path, file.Filename))
+			if err != nil {
+				return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+					"error": "Failed to save the file",
+				})
+			}
+		}
+		return c.JSON(fiber.Map{
+			"message": "Files uploaded successfully",
+		})
+	})
+
+	app.Get("/api/check_secret/*", func(c *fiber.Ctx) error {
+		fmt.Println("[Check Secret] Checking secret from IP:", c.IP())
+		// URL decode the path
+		input_secret, _ := url.QueryUnescape(c.Params("*"))
+		if input_secret == secret {
+			return c.JSON(fiber.Map{
+				"message": true,
+			})
+		}
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": "Incorrect secret",
+		})
+	})
+
+	app.Listen(":8080")
+}
+
+func CompressDir(input string, output string) error {
+	err := archiver.Archive([]string{input}, output)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func isDir(path string) bool {
+	// Get the FileInfo for the given path
+	fileInfo, err := os.Stat(path)
+	if err != nil {
+		// If an error occurs, it means the path does not exist or is inaccessible
+		return false
+	}
+
+	// Check if the FileInfo represents a directory
+	return fileInfo.IsDir()
 }
