@@ -1,0 +1,38 @@
+name: Build OurTransfert and Copy to OurTransfert-server
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout OurTransfert-server
+        uses: actions/checkout@v2
+
+      - name: Set up Node.js 16.x
+        uses: actions/setup-node@v2
+        with:
+          node-version: '16.x'
+
+      - name: Install dependencies for OurTransfert
+        run: npm ci
+        working-directory: OurTransfert   # Assuming OurTransfert is the child repository folder name
+
+      - name: Build OurTransfert
+        run: npm run build
+        working-directory: OurTransfert   # Assuming OurTransfert is the child repository folder name
+
+      - name: Copy dist directory to OurTransfert-server/ui
+        run: |
+          mkdir -p OurTransfert-server/ui   # Create the ui directory in the parent repository if it doesn't exist
+          cp -r OurTransfert/dist OurTransfert-server/ui
+          
+      - name: Commit Changes to OurTransfert-server
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add .
+          git commit -m "Build child repository into parent repository"
+          git push
