@@ -8,7 +8,7 @@ import (
 	"net/url"
 	"os"
 	"strings"
-
+	"runtime"
 	"crypto/sha256"
 
 	"github.com/gofiber/fiber/v2"
@@ -66,8 +66,12 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	if runtime.GOOS != "windows" {
+		password = password[:len(password)-1]
+	}
+	fmt.Println("Password:",string(password))
 	h := sha256.New()
-	h.Write([]byte(password))
+	h.Write([]byte(string(password)))
 	// Convert the sha256 hash to a string
 	secret := fmt.Sprintf("%x", h.Sum(nil))
 	fmt.Println("Secret:", secret)
@@ -77,7 +81,7 @@ func main() {
 	})
 
 	// serve the ui
-	app.Static("/", "../file/dist")
+	app.Static("/", "./ui")
 
 	// Start the routing
 	app.Get("/api/get_files/*", func(c *fiber.Ctx) error {
@@ -111,7 +115,7 @@ func main() {
 	})
 
 	app.Get("/download/*", func(c *fiber.Ctx) error {
-		return c.SendFile("../file/dist/index.html")
+		return c.SendFile("./ui/index.html")
 	})
 
 	app.Get("/api/download/*", func(c *fiber.Ctx) error {
@@ -227,8 +231,8 @@ func main() {
 			"error": "Incorrect secret",
 		})
 	})
-
-	app.Listen(":8080")
+	app.Listen(":80")
+//	app.ListenTLS(":443", "./cert/cert.crt", "./cert/cert.key")
 }
 
 func CompressDir(input string, output string) error {
