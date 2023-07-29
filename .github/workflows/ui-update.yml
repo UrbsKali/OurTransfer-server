@@ -8,13 +8,23 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Create Working Dirs
+        run: mkdir OurTransfert & mkdir OurTransfert-server
+        
+      - name: Go into OurTransfert-server
+        run: cd OurTransfert-server
+    
       - name: Checkout OurTransfert-server
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
+      
+      - name: Go into OurTransfert
+        run: cd ../OurTransfert
         
       - name: Checkout OurTransfert
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           repository: UrbsKali/OurTransfert
+          
 
       - name: Set up Node.js 16.x
         uses: actions/setup-node@v2
@@ -23,17 +33,16 @@ jobs:
 
       - name: Install dependencies for OurTransfert
         run: npm i
-        working-directory: OurTransfert   # Assuming OurTransfert is the child repository folder name
 
       - name: Build OurTransfert
         run: npm run build
-        working-directory: OurTransfert   # Assuming OurTransfert is the child repository folder name
 
       - name: Copy dist directory to OurTransfert-server/ui
         run: |
-          mkdir -p OurTransfert-server/ui   # Create the ui directory in the parent repository if it doesn't exist
-          cp -r OurTransfert/dist OurTransfert-server/ui
-          
+          mkdir -p ../OurTransfert-server/ui   # Create the ui directory in the parent repository if it doesn't exist
+          cp -r ./dist ../OurTransfert-server/ui
+      - name: go back into OurTransfert-server
+        run: cd ../OurTransfert-server
       - name: Commit Changes to OurTransfert-server
         run: |
           git config --local user.email "action@github.com"
