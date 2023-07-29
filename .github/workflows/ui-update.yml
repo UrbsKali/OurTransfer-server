@@ -10,6 +10,11 @@ jobs:
     steps:
       - name: Checkout OurTransfert-server
         uses: actions/checkout@v2
+        
+      - name: Checkout OurTransfert
+        uses: actions/checkout@v2
+        with:
+          name: UrbsKali/OurTransfert
 
       - name: Set up Node.js 16.x
         uses: actions/setup-node@v2
