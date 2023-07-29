@@ -9,7 +9,7 @@ jobs:
 
     steps:
       - name: Create Working Dirs
-        run: mkdir OurTransfert & mkdir OurTransfert-server
+        run: mkdir OurTransfert;mkdir OurTransfert-server
         
       - name: Go into OurTransfert-server
         run: cd OurTransfert-server
@@ -18,7 +18,7 @@ jobs:
         uses: actions/checkout@v3
       
       - name: Go into OurTransfert
-        run: cd ../OurTransfert
+        run: cd OurTransfert
         
       - name: Checkout OurTransfert
         uses: actions/checkout@v3
@@ -39,10 +39,10 @@ jobs:
 
       - name: Copy dist directory to OurTransfert-server/ui
         run: |
-          mkdir -p ../OurTransfert-server/ui   # Create the ui directory in the parent repository if it doesn't exist
-          cp -r ./dist ../OurTransfert-server/ui
+          mkdir -p OurTransfert-server/ui   # Create the ui directory in the parent repository if it doesn't exist
+          cp -r OurTransfert/dist OurTransfert-server/ui
       - name: go back into OurTransfert-server
-        run: cd ../OurTransfert-server
+        run: cd OurTransfert-server
       - name: Commit Changes to OurTransfert-server
         run: |
           git config --local user.email "action@github.com"
