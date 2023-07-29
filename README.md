@@ -2,6 +2,5 @@
 Go Backend for OurTransfer
 
 # Setup 
-- Create a 'PASSWORD' file and add your desired password inside
-- Add a 'files' folder
+- `./main setup`
 - You're good to go 👌
