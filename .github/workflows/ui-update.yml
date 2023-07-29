@@ -17,7 +17,7 @@ jobs:
           node-version: '16.x'
 
       - name: Install dependencies for OurTransfert
-        run: npm ci
+        run: npm i
         working-directory: OurTransfert   # Assuming OurTransfert is the child repository folder name
 
       - name: Build OurTransfert
