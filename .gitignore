@@ -1,5 +1,7 @@
 PASSWORD
-files
-tmp
-cert
-ui
+files*
+tmp*
+cert*
+ui*
+build*
+build.bat
