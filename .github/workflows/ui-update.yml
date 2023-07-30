@@ -21,9 +21,10 @@ jobs:
         run: cd OurTransfert-server;mkdir -p ui;cp -r ../OurTransfert/dist ./ui
       - name: commit
         run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          git add .
-          git commit -m "Build UI"
-          git push
+          cd OurTransfert-server;
+          git config --local user.email "action@github.com";
+          git config --local user.name "GitHub Action";
+          git add .;
+          git commit -m "Build UI";
+          git push;
           
