@@ -7,46 +7,26 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
-    steps:
-      - name: Create Working Dirs
-        run: mkdir OurTransfert;mkdir OurTransfert-server
-        
-      - name: Go into OurTransfert-server
-        run: cd OurTransfert-server
-    
-      - name: Checkout OurTransfert-server
-        uses: actions/checkout@v3
-      
-      - name: Go into OurTransfert
-        run: cd OurTransfert
-        
-      - name: Checkout OurTransfert
-        uses: actions/checkout@v3
-        with:
-          repository: UrbsKali/OurTransfert
-          
-
+    steps:         
       - name: Set up Node.js 16.x
         uses: actions/setup-node@v2
         with:
           node-version: '16.x'
 
-      - name: Install dependencies for OurTransfert
-        run: npm i
-
-      - name: Build OurTransfert
-        run: npm run build
-
-      - name: Copy dist directory to OurTransfert-server/ui
+      - name: EVERYTHINGS
         run: |
-          mkdir -p OurTransfert-server/ui   # Create the ui directory in the parent repository if it doesn't exist
-          cp -r OurTransfert/dist OurTransfert-server/ui
-      - name: go back into OurTransfert-server
-        run: cd OurTransfert-server
-      - name: Commit Changes to OurTransfert-server
-        run: |
+          git clone https://github.com/UrbsKali/OurTransfert
+          cd OurTransfert
+          npm i
+          npm run build
+          cd .. 
+          git clone https://github.com/UrbsKali/OurTransfert-server
+          cd OurTransfert-server
+          mkdir -p ui
+          cp -r ../OurTransfert/dist ./ui
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git add .
-          git commit -m "Build child repository into parent repository"
+          git commit -m "Build UI"
           git push
+          
