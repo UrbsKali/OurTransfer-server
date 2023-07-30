@@ -13,20 +13,32 @@ jobs:
         with:
           node-version: '16.x'
 
-      - name: EVERYTHINGS
-        run: |
-          git clone https://github.com/UrbsKali/OurTransfert
-          cd OurTransfert
-          npm i
-          npm run build
-          cd .. 
-          git clone https://github.com/UrbsKali/OurTransfert-server
-          cd OurTransfert-server
-          mkdir -p ui
-          cp -r ../OurTransfert/dist ./ui
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          git add .
-          git commit -m "Build UI"
-          git push
+      - name: clone
+        run: git clone https://github.com/UrbsKali/OurTransfert
+      - name: cd into OurTransfert
+        run: cd OurTransfert
+      - name: npm i
+        run: npm i
+      - name: build
+        run: npm run build
+      - name: clone
+        run: cd .. 
+      - name: clone
+        run: git clone https://github.com/UrbsKali/OurTransfert-server
+      - name: clone
+        run: cd OurTransfert-server
+      - name: clone
+        run: mkdir -p ui
+      - name: clone
+        run: cp -r ../OurTransfert/dist ./ui
+      - name: clone
+        run: git config --local user.email "action@github.com"
+      - name: clone
+        run: git config --local user.name "GitHub Action"
+      - name: clone
+        run: git add .
+      - name: clone
+        run: git commit -m "Build UI"
+      - name: clone
+        run: git push
           
