@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"log"
 	"os"
+
+	"urbskali/file/state"
 )
 
 func StartUp() {
@@ -25,12 +27,8 @@ func StartUp() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	// set env variables
-	os.Setenv("PORT", config.Port)
-	os.Setenv("HTTPS", fmt.Sprintf("%t", config.HTTPS))
-	os.Setenv("CERT", config.Cert)
-	os.Setenv("KEY", config.Key)
-	os.Setenv("PASSWORD", config.Password)
-	os.Setenv("SECRET", config.Secret)
-
+	// print the config
+	fmt.Println(config.String())
+	// set the config
+	state.Config = config
 }

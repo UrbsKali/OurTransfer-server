@@ -2,7 +2,7 @@ package api
 
 import (
 	"fmt"
-	"os"
+	"urbskali/file/state"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -11,7 +11,7 @@ func Upload(c *fiber.Ctx) error {
 	file_path := c.FormValue("path")
 	fmt.Println("[UPLOAD] " + file_path)
 	// Check is the secret is correct
-	if c.FormValue("secret") != os.Getenv("OurTransfert_SECRET") {
+	if c.FormValue("secret") != state.Config.Secret {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 			"error": "Unauthorized",
 		})

@@ -2,6 +2,7 @@ package models
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 )
 
@@ -26,4 +27,16 @@ func (c *Config) SaveConfig() error {
 		return err
 	}
 	return nil
+}
+
+func (c *Config) String() string {
+	return fmt.Sprintf(
+		`{
+	HTTPS: %t
+	Cert: %s
+	Key: %s
+	Port: %s
+	Password: %s
+	Secret: %s
+}`, c.HTTPS, c.Cert, c.Key, c.Port, c.Password, c.Secret)
 }

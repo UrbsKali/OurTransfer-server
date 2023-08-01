@@ -2,6 +2,7 @@ package api
 
 import (
 	"fmt"
+	"net/url"
 	"strings"
 	"urbskali/file/utils"
 
@@ -9,7 +10,9 @@ import (
 )
 
 func Download(c *fiber.Ctx) error {
-	file := c.FormValue("path")
+	// url decode the file path
+	file, _ := url.QueryUnescape(c.Params("*"))
+	fmt.Println("[DOWNLOAD] " + file)
 	// if the file is a directory, compress it and send it
 	if utils.IsDir(fmt.Sprintf("./files/%s", file)) {
 		// get the directory name

@@ -2,15 +2,15 @@ package utils
 
 import (
 	"fmt"
-	"os"
+	"urbskali/file/state"
 
 	"github.com/gofiber/fiber/v2"
 )
 
 func Start(app *fiber.App) {
-	port := fmt.Sprintf(":%s", os.Getenv("PORT"))
-	if os.Getenv("HTTPS") == "true" {
-		app.ListenTLS(port, os.Getenv("CERT"), os.Getenv("KEY"))
+	port := fmt.Sprintf(":%s", state.Config.Port)
+	if state.Config.HTTPS {
+		app.ListenTLS(port, state.Config.Cert, state.Config.Key)
 	} else {
 		app.Listen(port)
 	}

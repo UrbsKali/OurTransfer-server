@@ -2,6 +2,7 @@ package api
 
 import (
 	"fmt"
+	"urbskali/file/state"
 
 	"github.com/gofiber/fiber/v2"
 
@@ -10,7 +11,7 @@ import (
 
 func Delete(c *fiber.Ctx) error {
 	path := c.FormValue("path")
-	if c.FormValue("secret") != os.Getenv("OurTransfert_SECRET") {
+	if c.FormValue("secret") != state.Config.Secret {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 			"error": "Unauthorized",
 		})

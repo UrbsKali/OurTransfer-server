@@ -12,7 +12,7 @@ func PublicRoutes(app *fiber.App) {
 
 	route.Post("/get_files/", api.GetFiles)
 	route.Post("/file_info/", api.FileInfo)
-	route.Post("/download/", api.Download)
 	route.Post("/check_secret/", api.CheckSecret)
+	route.Get("/download/*", api.Download)
 
 }
